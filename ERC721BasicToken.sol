@@ -185,7 +185,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 10
   function removeTokenFrom(address _from, uint256 _tokenId) internal {
     // YOUR CODE HERE
-    ownedTokensCount[_from] = 0;
+    ownedTokensCount[_from] -= 1;
   }
 
   /**
@@ -196,7 +196,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 11
   function addTokenTo(address _to, uint256 _tokenId) internal {
     // YOUR CODE HERE
-    ownedTokensCount[_to] = _tokenId;
+    ownedTokensCount[_to] += 1;
 
   }
 
