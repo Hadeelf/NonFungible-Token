@@ -19,6 +19,12 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
   // which can be also obtained as `ERC721Receiver(0).onERC721Received.selector`
   bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
 
+    // uint80 constant None = uint80(0); 
+
+
+  // Added Mapping from address to token ID
+//   mapping (address => uint256) internal tokenList;
+  
   // Mapping from token ID to owner
   mapping (uint256 => address) internal tokenOwner;
 
@@ -47,7 +53,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
    // number 1
   function balanceOf(address _owner) public view returns (uint256) {
     // YOUR CODE HERE
-
+    return ownedTokensCount[_owner];
   }
 
   /**
@@ -59,6 +65,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     //hint: the owner should be exist to return its address
   function ownerOf(uint256 _tokenId) public view returns (address) {
     // YOUR CODE HERE
+    return tokenOwner[_tokenId];
 
   }
 
@@ -70,7 +77,10 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 3
   function exists(uint256 _tokenId) public view returns (bool) {
     // YOUR CODE HERE
-
+    if(tokenOwner[_tokenId] != address(0))
+        return true;
+    else
+        return false;
   }
     /**
    * @dev Tells whether an operator is approved by a given owner
@@ -79,18 +89,10 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
    * @return bool whether the given operator is approved by the given owner
    */
     // number 4
-  function isApprovedForAll(
-    address _owner,
-    address _operator
-  )
-    public
-    view
-    returns (bool)
-  {
-    // YOUR CODE HERE
-
-  }
-
+  function isApprovedForAll (address _owner, address _operator)   public view returns (bool){
+     // YOUR CODE HERE
+    return operatorApprovals[_owner][_operator];
+    }
 
   /**
    * @dev Approves another address to transfer the given token ID
@@ -101,10 +103,17 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
    * @param _tokenId uint256 ID of the token to be approved
    */
     // number 5
-    // hint: the approver should be the owner or should be approved for all tokens that owned by the owner
+    // hint: the approver should be the owner or should
+    //be approved for all tokens that owned by the owner
   function approve(address _to, uint256 _tokenId) public {
     // YOUR CODE HERE
-
+    
+    if(tokenOwner[_tokenId] == msg.sender){
+        tokenApprovals[_tokenId] = _to;
+    }
+    else{
+        operatorApprovals[msg.sender][_to] = true;
+    }
   }
 
   /**
@@ -115,7 +124,12 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 6
   function getApproved(uint256 _tokenId) public view returns (address) {
     // YOUR CODE HERE
-
+    if (tokenApprovals[_tokenId] == address(0)){
+        return 0;
+    }
+    else{
+        return tokenApprovals[_tokenId];    
+    }
   }
 
   /**
@@ -127,7 +141,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 7
   function setApprovalForAll(address _to, bool _approved) public {
     // YOUR CODE HERE
-
+    operatorApprovals[msg.sender][_to] = _approved;
   }
 
   /**
@@ -138,18 +152,18 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
    *  is an operator of the owner, or is the owner of the token
    */
     // number 8
-  function isApprovedOrOwner(
-    address _spender,
-    uint256 _tokenId
-  )
-    internal
-    view
-    returns (bool)
-  {
-    // YOUR CODE HERE
-
-  }
-  /**
+  function isApprovedOrOwner (address _spender, uint256 _tokenId) internal view returns (bool){
+    
+        bool isApproved = false;
+        if (_spender == msg.sender 
+        || tokenApprovals[_tokenId] == _spender 
+        || operatorApprovals[msg.sender][_spender]){
+            isApproved = true;
+        } 
+        return isApproved;
+    }
+    
+    /**
    * @dev Internal function to clear current approval of a given token ID
    * Reverts if the given address is not indeed the owner of the token
    * @param _owner owner of the token
@@ -158,7 +172,9 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 9
   function clearApproval(address _owner, uint256 _tokenId) internal {
     // YOUR CODE HERE
-
+    if(_owner == msg.sender){
+        tokenApprovals[_tokenId] = address(0);
+    }
   }
 
   /**
@@ -169,7 +185,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 10
   function removeTokenFrom(address _from, uint256 _tokenId) internal {
     // YOUR CODE HERE
-
+    ownedTokensCount[_from] = 0;
   }
 
   /**
@@ -180,6 +196,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 11
   function addTokenTo(address _to, uint256 _tokenId) internal {
     // YOUR CODE HERE
+    ownedTokensCount[_to] = _tokenId;
 
   }
 
@@ -192,15 +209,16 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
    * @param _tokenId uint256 ID of the token to be transferred
   */
    // number 12
-  function transferFrom(
-    address _from,
-    address _to,
-    uint256 _tokenId
-  )
-    public
-  {
+  function transferFrom(address _from, address _to,uint256 _tokenId) public {
     // YOUR CODE HERE
+    if (isApprovedOrOwner(msg.sender, _tokenId)){
+        tokenOwner[_tokenId] = _to;
+        // tokenApprovals[_tokenId] = address(0);
+        clearApproval(msg.sender, _tokenId);
 
+        ownedTokensCount[_from] = 0;
+        ownedTokensCount[_to] = _tokenId;
+    }
   }
 
   /**
@@ -215,13 +233,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
    * @param _to address to receive the ownership of the given token ID
    * @param _tokenId uint256 ID of the token to be transferred
   */
-  function safeTransferFrom(
-    address _from,
-    address _to,
-    uint256 _tokenId
-  )
-    public
-  {
+  function safeTransferFrom (address _from, address _to, uint256 _tokenId) public {
     safeTransferFrom(_from, _to, _tokenId, "");
   }
 
@@ -237,14 +249,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
    * @param _tokenId uint256 ID of the token to be transferred
    * @param _data bytes data to send along with a safe transfer check
    */
-  function safeTransferFrom(
-    address _from,
-    address _to,
-    uint256 _tokenId,
-    bytes _data
-  )
-    public
-  {
+  function safeTransferFrom( address _from, address _to, uint256 _tokenId, bytes _data) public {
     transferFrom(_from, _to, _tokenId);
     require(checkAndCallSafeTransfer(_from, _to, _tokenId, _data));
   }
@@ -258,10 +263,14 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
    */
     // number 13
   function _mint(address _to, uint256 _tokenId) internal {
-    require(_to != address(0));
-    addTokenTo(_to, _tokenId);
-    emit Transfer(address(0), _to, _tokenId);
-  }
+      if(!exists(_tokenId)){
+        require(_to != address(0));
+        addTokenTo(_to, _tokenId);
+        emit Transfer(address(0), _to, _tokenId);
+        //new 
+        tokenOwner[_tokenId] = _to;
+      }
+    }
 
   /**
    * @dev Internal function to burn a specific token
@@ -270,9 +279,13 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
    */
    // number 14
   function _burn(address _owner, uint256 _tokenId) internal {
-    clearApproval(_owner, _tokenId);
-    removeTokenFrom(_owner, _tokenId);
-    emit Transfer(_owner, address(0), _tokenId);
+      if(exists(_tokenId) && _owner == msg.sender){
+        clearApproval(_owner, _tokenId);
+        removeTokenFrom(_owner, _tokenId);
+        emit Transfer(_owner, address(0), _tokenId);
+        //new 
+        tokenOwner[_tokenId] = address(0);
+      }
   }
 
 
